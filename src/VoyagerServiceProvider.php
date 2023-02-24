@@ -16,7 +16,6 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
 use Intervention\Image\ImageServiceProvider;
-use Larapack\DoctrineSupport\DoctrineSupportServiceProvider;
 use TCG\Voyager\Events\FormFieldsRegistered;
 use TCG\Voyager\Facades\Voyager as VoyagerFacade;
 use TCG\Voyager\FormFields\After\DescriptionHandler;
@@ -28,6 +27,7 @@ use TCG\Voyager\Policies\MenuItemPolicy;
 use TCG\Voyager\Policies\SettingPolicy;
 use TCG\Voyager\Providers\VoyagerDummyServiceProvider;
 use TCG\Voyager\Providers\VoyagerEventServiceProvider;
+use TCG\Voyager\VoyagerOctanable;
 use TCG\Voyager\Seed;
 use TCG\Voyager\Translator\Collection as TranslatorCollection;
 
@@ -59,7 +59,6 @@ class VoyagerServiceProvider extends ServiceProvider
         $this->app->register(VoyagerEventServiceProvider::class);
         $this->app->register(ImageServiceProvider::class);
         $this->app->register(VoyagerDummyServiceProvider::class);
-        $this->app->register(DoctrineSupportServiceProvider::class);
 
         $loader = AliasLoader::getInstance();
         $loader->alias('Voyager', VoyagerFacade::class);
@@ -96,29 +95,35 @@ class VoyagerServiceProvider extends ServiceProvider
      */
     public function boot(Router $router, Dispatcher $event)
     {
+        if (config('voyager.octane_enabled')) {
+            $this->app->bind('voyager', function () {
+                return new VoyagerOctanable();
+            });
+        }
+
         if (config('voyager.user.add_default_role_on_register')) {
             $model = Auth::guard(app('VoyagerGuard'))->getProvider()->getModel();
-            call_user_func($model.'::created', function ($user) use ($model) {
+            call_user_func($model . '::created', function ($user) use ($model) {
                 if (is_null($user->role_id)) {
-                    call_user_func($model.'::findOrFail', $user->id)
+                    call_user_func($model . '::findOrFail', $user->id)
                         ->setRole(config('voyager.user.default_role'))
                         ->save();
                 }
             });
         }
 
-        $this->loadViewsFrom(__DIR__.'/../resources/views', 'voyager');
+        $this->loadViewsFrom(__DIR__ . '/../resources/views', 'voyager');
 
         $router->aliasMiddleware('admin.user', VoyagerAdminMiddleware::class);
 
-        $this->loadTranslationsFrom(realpath(__DIR__.'/../publishable/lang'), 'voyager');
+        $this->loadTranslationsFrom(realpath(__DIR__ . '/../publishable/lang'), 'voyager');
 
         if (config('voyager.database.autoload_migrations', true)) {
             if (config('app.env') == 'testing') {
-                $this->loadMigrationsFrom(realpath(__DIR__.'/migrations'));
+                $this->loadMigrationsFrom(realpath(__DIR__ . '/migrations'));
             }
 
-            $this->loadMigrationsFrom(realpath(__DIR__.'/../migrations'));
+            $this->loadMigrationsFrom(realpath(__DIR__ . '/../migrations'));
         }
 
         $this->loadAuth();
@@ -141,7 +146,7 @@ class VoyagerServiceProvider extends ServiceProvider
      */
     protected function loadHelpers()
     {
-        foreach (glob(__DIR__.'/Helpers/*.php') as $filename) {
+        foreach (glob(__DIR__ . '/Helpers/*.php') as $filename) {
             require_once $filename;
         }
     }
@@ -221,7 +226,7 @@ class VoyagerServiceProvider extends ServiceProvider
         $components = ['title', 'text', 'button'];
 
         foreach ($components as $component) {
-            $class = 'TCG\\Voyager\\Alert\\Components\\'.ucfirst(Str::camel($component)).'Component';
+            $class = 'TCG\\Voyager\\Alert\\Components\\' . ucfirst(Str::camel($component)) . 'Component';
 
             $this->app->bind("voyager.alert.components.{$component}", $class);
         }
@@ -245,7 +250,7 @@ class VoyagerServiceProvider extends ServiceProvider
      */
     private function registerPublishableResources()
     {
-        $publishablePath = dirname(__DIR__).'/publishable';
+        $publishablePath = dirname(__DIR__) . '/publishable';
 
         $publishable = [
             'voyager_avatar' => [
@@ -268,7 +273,7 @@ class VoyagerServiceProvider extends ServiceProvider
     public function registerConfigs()
     {
         $this->mergeConfigFrom(
-            dirname(__DIR__).'/publishable/config/voyager.php',
+            dirname(__DIR__) . '/publishable/config/voyager.php',
             'voyager'
         );
     }
@@ -287,8 +292,10 @@ class VoyagerServiceProvider extends ServiceProvider
 
                 foreach ($dataTypes as $dataType) {
                     $policyClass = BasePolicy::class;
-                    if (isset($dataType->policy_name) && $dataType->policy_name !== ''
-                        && class_exists($dataType->policy_name)) {
+                    if (
+                        isset($dataType->policy_name) && $dataType->policy_name !== ''
+                        && class_exists($dataType->policy_name)
+                    ) {
                         $policyClass = $dataType->policy_name;
                     }
 
