@@ -1,7 +1,11 @@
 {
 	"name": "vortechron/voyager",
 	"description": "A Laravel Admin Package for The Control Group to make your life easier and steer your project in the right direction",
-	"keywords": ["laravel", "admin", "panel"],
+	"keywords": [
+		"laravel",
+		"admin",
+		"panel"
+	],
 	"license": "MIT",
 	"homepage": "https://voyager.devdojo.com/",
 	"support": {
@@ -44,7 +48,7 @@
 			"TCG\\Voyager\\Tests\\Database\\Factories\\": "tests/database/factories/"
 		}
 	},
-	"minimum-stability": "stable",
+	"minimum-stability": "dev",
 	"extra": {
 		"laravel": {
 			"providers": [
