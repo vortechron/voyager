@@ -35,7 +35,7 @@ class Table extends DoctrineTable
 
         $options = $table['options'];
 
-        return new self($name, $columns, $indexes, $foreignKeys, false, $options);
+        return new self($name, $columns, $indexes, [], $foreignKeys, $options);
     }
 
     public function getColumnsIndexes($columns, $sort = false)
@@ -162,7 +162,7 @@ class Table extends DoctrineTable
 
     public function __get($property)
     {
-        $getter = 'get'.ucfirst($property);
+        $getter = 'get' . ucfirst($property);
 
         if (!method_exists($this, $getter)) {
             throw new \Exception("Property {$property} doesn't exist or is unavailable");
